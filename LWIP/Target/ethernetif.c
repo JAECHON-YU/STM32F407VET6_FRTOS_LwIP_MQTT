@@ -43,7 +43,7 @@
 #define ETHIF_TX_TIMEOUT (2000U)
 /* USER CODE BEGIN OS_THREAD_STACK_SIZE_WITH_RTOS */
 /* Stack size of the interface thread */
-#define INTERFACE_THREAD_STACK_SIZE ( 350 )
+#define INTERFACE_THREAD_STACK_SIZE ( 1024 ) // fix stack ovf : EthIf   350 -> 1024
 /* USER CODE END OS_THREAD_STACK_SIZE_WITH_RTOS */
 /* Network interface name */
 #define IFNAME0 's'
@@ -821,7 +821,7 @@ void ethernet_link_thread(void* argument)
   }
 
 /* USER CODE BEGIN ETH link Thread core code for User BSP */
-
+    DHCP_Process(netif);
 /* USER CODE END ETH link Thread core code for User BSP */
 
     osDelay(100);

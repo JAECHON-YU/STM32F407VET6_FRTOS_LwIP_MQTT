@@ -30,6 +30,7 @@
 #include <sys/time.h>
 #include <sys/times.h>
 
+extern UART_HandleTypeDef huart6;
 
 /* Variables */
 extern int __io_putchar(int ch) __attribute__((weak));
@@ -80,12 +81,7 @@ __attribute__((weak)) int _read(int file, char *ptr, int len)
 __attribute__((weak)) int _write(int file, char *ptr, int len)
 {
   (void)file;
-  int DataIdx;
-
-  for (DataIdx = 0; DataIdx < len; DataIdx++)
-  {
-    __io_putchar(*ptr++);
-  }
+  HAL_UART_Transmit(&huart6, (const uint8_t *)ptr, len, 100);
   return len;
 }
 

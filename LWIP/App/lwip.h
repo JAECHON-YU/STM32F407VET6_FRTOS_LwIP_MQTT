@@ -41,7 +41,44 @@
 #endif /* WITH_RTOS */
 
 /* USER CODE BEGIN 0 */
+#define DHCP_OFF (uint8_t) 0
+#define DHCP_START (uint8_t) 1
+#define DHCP_WAIT_ADDRESS (uint8_t) 2
+#define DHCP_ADDRESS_ASSIGNED (uint8_t) 3
+#define DHCP_TIMEOUT (uint8_t) 4
+#define DHCP_LINK_DOWN (uint8_t) 5
+#define DHCP_RELEASE (uint8_t) 6
+#define DHCP_RENEW (uint8_t) 7
+#define DHCP_REBIND (uint8_t) 8
+#define DHCP_RENEW_TIMEOUT (uint8_t) 9
+#define DHCP_REBIND_TIMEOUT (uint8_t) 10
+#define DHCP_STOP (uint8_t) 11
 
+#define DEST_IP_ADDR0   (uint8_t) 10
+#define DEST_IP_ADDR1   (uint8_t) 157
+#define DEST_IP_ADDR2   (uint8_t) 11
+#define DEST_IP_ADDR3   (uint8_t) 162
+
+#define UDP_SERVER_PORT   (uint16_t) 7   /* define the UDP local connection port */
+#define UDP_CLIENT_PORT   (uint16_t) 7   /* define the UDP remote connection port */
+ 
+/*Static IP ADDRESS: IP_ADDR0.IP_ADDR1.IP_ADDR2.IP_ADDR3 */
+#define IP_ADDR0   (uint8_t) 192
+#define IP_ADDR1   (uint8_t) 168
+#define IP_ADDR2   (uint8_t) 0
+#define IP_ADDR3   (uint8_t) 10
+   
+/*NETMASK*/
+#define NETMASK_ADDR0   (uint8_t) 255
+#define NETMASK_ADDR1   (uint8_t) 255
+#define NETMASK_ADDR2   (uint8_t) 255
+#define NETMASK_ADDR3   (uint8_t) 0
+
+/*Gateway Address*/
+#define GW_ADDR0   (uint8_t) 192
+#define GW_ADDR1   (uint8_t) 168
+#define GW_ADDR2   (uint8_t) 0
+#define GW_ADDR3   (uint8_t) 1
 /* USER CODE END 0 */
 
 /* Global Variables ----------------------------------------------------------*/

@@ -29,7 +29,9 @@
 #include <string.h>
 
 /* USER CODE BEGIN 0 */
-
+#define MAX_DHCP_TRIES 4
+uint32_t DHCPfineTimer = 0;
+uint8_t DHCP_state = DHCP_OFF;
 /* USER CODE END 0 */
 /* Private function prototypes -----------------------------------------------*/
 static void ethernet_link_status_updated(struct netif *netif);
@@ -51,7 +53,76 @@ osThreadAttr_t attributes;
 /* USER CODE END OS_THREAD_ATTR_CMSIS_RTOS_V2 */
 
 /* USER CODE BEGIN 2 */
+void DHCP_Process(struct netif *netif)
+{
+  ip_addr_t ipaddr;
+  ip_addr_t netmask;
+  ip_addr_t gw;
+  struct dhcp *dhcp;
+  uint8_t iptxt[20];
 
+
+  switch (DHCP_state)
+  {
+    case DHCP_START:
+    {
+
+      printf ("  State: Looking for DHCP server ...\n");
+
+      ip_addr_set_zero_ip4(&netif->ip_addr);
+      ip_addr_set_zero_ip4(&netif->netmask);
+      ip_addr_set_zero_ip4(&netif->gw);
+      dhcp_start(netif);
+      DHCP_state = DHCP_WAIT_ADDRESS;
+    }
+    break;
+
+  case DHCP_WAIT_ADDRESS:
+    {
+      if (dhcp_supplied_address(netif))
+      {
+        DHCP_state = DHCP_ADDRESS_ASSIGNED;
+
+        sprintf((char *)iptxt, "%s", ip4addr_ntoa(netif_ip4_addr(netif)));
+        printf ("IP address assigned by a DHCP server: %s\n", iptxt);
+
+
+      }
+      else
+      {
+        dhcp = (struct dhcp *)netif_get_client_data(netif, LWIP_NETIF_CLIENT_DATA_INDEX_DHCP);
+
+        /* DHCP timeout */
+        if (dhcp->tries > MAX_DHCP_TRIES)
+        {
+          DHCP_state = DHCP_TIMEOUT;
+
+          /* Static address used */
+          IP_ADDR4(&ipaddr, IP_ADDR0 ,IP_ADDR1 , IP_ADDR2 , IP_ADDR3 );
+          IP_ADDR4(&netmask, NETMASK_ADDR0, NETMASK_ADDR1, NETMASK_ADDR2, NETMASK_ADDR3);
+          IP_ADDR4(&gw, GW_ADDR0, GW_ADDR1, GW_ADDR2, GW_ADDR3);
+          netif_set_addr(netif, &ipaddr, &netmask, &gw);
+
+
+          sprintf((char *)iptxt, "%s", ip4addr_ntoa(netif_ip4_addr(netif)));
+          printf ("DHCP Timeout !! \n");
+          printf ("Static IP address: %s\n", iptxt);
+
+        }
+      }
+    }
+    break;
+  case DHCP_LINK_DOWN:
+    {
+      DHCP_state = DHCP_OFF;
+
+      printf ("The network cable is not connected \n");
+
+    }
+    break;
+  default: break;
+  }
+}
 /* USER CODE END 2 */
 
 /**
@@ -113,11 +184,19 @@ static void ethernet_link_status_updated(struct netif *netif)
   if (netif_is_up(netif))
   {
 /* USER CODE BEGIN 5 */
+    printf("Network interface is up\n");
+    DHCP_state = DHCP_START;
+    uint8_t iptxt[20];
+    sprintf((char *)iptxt, "%s",ip4addr_ntoa(netif_ip4_addr(netif)));
+    printf("IP Address: %s\n", iptxt);
 /* USER CODE END 5 */
   }
   else /* netif is down */
   {
 /* USER CODE BEGIN 6 */
+    printf("Network interface is down\n");
+    DHCP_state = DHCP_LINK_DOWN;
+    printf("The network cable is not connected \n");
 /* USER CODE END 6 */
   }
 }
