@@ -23,7 +23,9 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include <netif.h>
+#include "mqtt.h"
+#include "mqtt_example.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -53,7 +55,13 @@ const osThreadAttr_t defaultTask_attributes = {
   .priority = (osPriority_t) osPriorityNormal,
 };
 /* USER CODE BEGIN PV */
+extern struct netif gnetif; //extern gnetif
+extern mqtt_client_t* mqtt_client;
 
+extern int mqtt_connected;
+
+osThreadId mqttClientSubTaskHandle;  //mqtt client task handle
+osThreadId mqttClientPubTaskHandle;  //mqtt client task handle
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -64,7 +72,8 @@ static void MX_USART6_UART_Init(void);
 void StartDefaultTask(void *argument);
 
 /* USER CODE BEGIN PFP */
-
+void MqttClientSubTask(void const *argument); //mqtt client subscribe task function
+void MqttClientPubTask(void const *argument); //mqtt client publish task function
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -283,7 +292,96 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+void MqttClientSubTask(void const *argument)
+{
+  while(1)
+  {
+    //waiting for valid ip address
+    if (gnetif.ip_addr.addr == 0 || gnetif.netmask.addr == 0 || gnetif.gw.addr == 0) //system has no valid ip address
+    {
+      osDelay(1000);
+      continue;
+    }
+    else
+    {
+      printf("DHCP/Static IP O.K.\n");
+      break;
+    }
+  }
 
+
+  while(1)
+  {
+    
+    if(!mqtt_connected)
+    {
+      //try to connect to the broker
+      //MQTTDisconnect(&mqttClient);
+      //MqttConnectBroker();
+      mqtt_example_init();
+      printf("MQTT not connected! \n");
+      osDelay(5000);
+    }
+    else
+    {
+      //MQTTYield(&mqttClient, 1000); //handle timer
+      //printf("MQTT connected! Do Timer Work for not prioryty\n");
+      osDelay(100);
+    }
+    
+    
+    osDelay(1500);
+  }
+
+
+}
+
+void MqttClientPubTask(void const *argument)
+{
+  const char* str = "MQTT message from STM32";
+  //MQTTMessage message;
+
+  while(1)
+  {
+    /*
+    if(mqttClient.isconnected)
+    {
+      message.payload = (void*)str;
+      message.payloadlen = strlen(str);
+
+      if(MQTTPublish(&mqttClient, "test", &message) != MQTT_SUCCESS)
+      {
+        MQTTCloseSession(&mqttClient);
+        net_disconnect(&net);
+      }
+    }
+    */
+    if (mqtt_connected && netif_is_up(&gnetif)) {
+      const char *topic = "v1/devices/me/telemetry";
+      const char *payload = "{temperature:27}";
+      u8_t qos = 1; // QoS 1
+      u8_t retain = 0;
+
+      err_t err = mqtt_publish(
+          mqtt_client,           // mqtt_client_t* pointer
+          topic,                 // topic string
+          payload,               // payload pointer
+          strlen(payload),       // payload length
+          qos,                   // QoS
+          retain,                // retain flag
+          NULL,                  // callback (optional)
+          NULL                   // callback argument (optional)
+      );
+      if (err == ERR_OK) {
+          printf("MQTT publish success!\n");
+      } else {
+          printf("MQTT publish failed: %d\n", err);
+      }
+    }
+    //printf("Sending MQTT Message! \n");
+    osDelay(5000);
+  }
+}
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN Header_StartDefaultTask */
@@ -298,6 +396,20 @@ void StartDefaultTask(void *argument)
   /* init code for LWIP */
   MX_LWIP_Init();
   /* USER CODE BEGIN 5 */
+  const osThreadAttr_t mqttClientSubTask_attributes = {
+    .name = "mqttClientSubTask",
+    .priority = (osPriority_t) osPriorityNormal,
+    .stack_size = 1024
+  };
+  mqttClientSubTaskHandle = osThreadNew(MqttClientSubTask, NULL, &mqttClientSubTask_attributes);
+
+  const osThreadAttr_t mqttClientPubTask_attributes = {
+    .name = "mqttClientPubTask",
+    .priority = (osPriority_t) osPriorityNormal,
+    .stack_size = 1024
+  };
+  mqttClientPubTaskHandle = osThreadNew(MqttClientPubTask, NULL, &mqttClientPubTask_attributes);
+
   /* Infinite loop */
   for(;;)
   {
